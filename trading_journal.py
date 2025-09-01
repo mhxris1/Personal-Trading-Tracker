@@ -1,6 +1,42 @@
+def get_stored_shares(line):
+     y=(line.split(",")[0]).strip()
+     z=(y.split(":")[2]).strip()
+     return int(z)
+
+def get_investement(line):
+       y=(line.split(",")[1]).strip()
+       z=(y.split("$")[1]).strip()
+       return float(z)
+
+
+
+
+
 journal_running = True
 portfolio={}
 trade_history=[]
+with open("Trading Portfolio", "r") as trading_portfolio:
+    trade_data = trading_portfolio.readlines()
+print(trade_data)
+
+for x in trade_data:
+    x=x.strip()
+    stock_sticker=(x.split(":")[0]).strip()
+    stored_shares=get_stored_shares(x)
+    initial_investement=get_investement(x)
+    average_price=initial_investement/stored_shares
+    portfolio[stock_sticker]={
+        "Total Shares":stored_shares,
+        "Total Investement":initial_investement,
+        "Average Price":average_price
+
+    }
+
+
+
+
+
+
 
 print("\nWelcome to My Trading Journal")
 print("-----------------------------")
@@ -41,9 +77,12 @@ while journal_running==True:
     elif choose_option==2:
         print ("📊 Portfolio Summary")
         print("---------------------")
+        
         for stock_sticker, value  in portfolio.items():
-            print(f"{stock_sticker}:Total Shares:{value['Total Shares']}, Total Investement: ${value['Total Investement']:.2f}, Average Price: ${value['Average Price']:.2f}")
-            print("\n")
+            print(f"{stock_sticker}:Total Shares:{value['Total Shares']}, Total Investement: ${value['Total Investement']:.2f}, Average Price: ${value['Average Price']:.2f}\n")
+           
+        
+        
     
     elif choose_option==3:
         print("📝 Trade History")
@@ -54,11 +93,16 @@ while journal_running==True:
     elif choose_option==4:
         print("👋 Exiting Trading Journal. Goodbye!")
         journal_running=False
-        
+
     else:
         print("Incorrect Input. Please enter the Number corresponding to your needs.")
     
 
+trading_portfolio=open("Trading Portfolio","w")
+for stock_sticker, value  in portfolio.items():
+    trading_portfolio.write(f"{stock_sticker}:Total Shares:{value['Total Shares']}, Total Investement: ${value['Total Investement']:.2f}, Average Price: ${value['Average Price']:.2f}\n")
+    
+trading_portfolio.close()
 
 
 
