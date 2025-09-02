@@ -83,7 +83,7 @@ def get_positive_float(prompt):
 def process_buy(portfolio, trade_history):
     stock_sticker = get_stock_input("Enter Stock Sticker: ")
     number_of_shares = get_positive_float("Enter number of Shares: ")
-    buy_price_per_share = get_stock_price_buy(stock_sticker)
+    buy_price_per_share = get_buy_price(stock_sticker)
     if buy_price_per_share is None:
         return
     
@@ -108,7 +108,7 @@ def process_buy(portfolio, trade_history):
 def process_sell(portfolio, trade_history):
     stock_sticker = get_stock_input("Enter Stock Sticker: ")
     number_of_shares = get_positive_float("Enter number of Shares: ")
-    sell_price_per_share = get_stock_price_sell(stock_sticker)
+    sell_price_per_share = get_sell_price(stock_sticker)
     if sell_price_per_share is None:
         return
     
@@ -164,19 +164,24 @@ def log_trade(filename,trade):
     except IOError as e:
         print(f"Error writing to trade log: {e}")
 
-def get_stock_price_buy(name):
+def get_buy_price(name):
     url=f"{Api_Url}symbol={name}&apikey=A4AHYDKW4OWWLQAM"
     response=requests.get(url)
     data=response.json()
+    if "Time Series (Daily)" not in data:
+        print("⚠️ API error: ", data.get("Note", "No data returned."))
+        return None
+
     latest_date = list(data["Time Series (Daily)"].keys())[0]
     daily_data = data["Time Series (Daily)"][latest_date]
     buy_price = float(daily_data["1. open"])
     return buy_price
 
-def get_stock_price_sell(name):
+def get_sell_price(name):
     url=(f"{Api_Url}symbol={name}&apikey=A4AHYDKW4OWWLQAM")
     response=requests.get(url)
     data=response.json()
+    
     if "Time Series (Daily)" not in data:
         print("⚠️ API error: ", data.get("Note", "No data returned."))
         return None
@@ -194,7 +199,7 @@ journal_running = True
 portfolio = load_portfolio("Trading Portfolio")
 create_trade_log_file("Trade History")
 trade_history = []
-Api_Url="https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&"
+Api_Url=("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&")
 
 
 print("\nWelcome to My Trading Journal")
