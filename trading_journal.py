@@ -40,16 +40,17 @@ for x in trade_data:
 
 print("\nWelcome to My Trading Journal")
 print("-----------------------------")
-print("1. Add a Trade\n2. View Portfolio\n3.View Trade History\n4.Exit\n")
+print("1. Add a Trade\n2.Sell Stock\n3.View Portfolio\n4.View Trade History\n5.Exit\n")
 
 while journal_running==True:
-    choose_option = int(input("Choose an option e.g (1,2,3 or 4): "))
+    choose_option = int(input("Choose an option e.g (1,2,3 ,4 or 5): "))
     if choose_option==1:
         stock_sticker=input("Enter Stock Sticker: ")
         number_of_shares= int(input("Enter number of Shares you want to buy: "))
         buy_price_per_share=int(input("Enter buy price per share: "))
         price_of_trade= buy_price_per_share*number_of_shares
         new_trade={
+                "Type":"Buy",
                 "Stock":stock_sticker,
                 "Shares":number_of_shares,
                 "Price":price_of_trade
@@ -63,18 +64,45 @@ while journal_running==True:
             portfolio[stock_sticker]["Total Investement"]=total_investement
             portfolio[stock_sticker]["Average Price"]=total_investement/total_shares
            
-
-
-       
-        
         else:
             portfolio[stock_sticker] = {
                 "Total Shares":number_of_shares,
                 "Total Investement":number_of_shares*buy_price_per_share,
                 "Average Price":buy_price_per_share
              }
-            
+    
     elif choose_option==2:
+        stock_sticker=input("Enter Stock Sticker: ")
+        number_of_shares=int(input("Enter number of Shares you want to sell: "))
+        sell_price_per_share=int(input("Enter sell price per share: "))
+        price_of_trade=sell_price_per_share*number_of_shares
+
+        if stock_sticker in portfolio and portfolio[stock_sticker]["Total Shares"] >= number_of_shares:
+
+                average_price = portfolio[stock_sticker]["Average Price"]
+                total_shares=portfolio[stock_sticker]["Total Shares"] - number_of_shares
+                total_investement=portfolio[stock_sticker]["Total Investement"] - number_of_shares*average_price
+                
+                if total_shares > 0:
+                     portfolio[stock_sticker]["Total Shares"] = total_shares
+                     portfolio[stock_sticker]["Total Investement"] = total_investement
+                     portfolio[stock_sticker]["Average Price"] = total_investement / total_shares
+                else:
+                    
+                    del portfolio[stock_sticker]
+                new_trade = {
+                    "Type":"Sell",
+                    "Stock": stock_sticker,
+                    "Shares": number_of_shares,
+                    "Price": price_of_trade
+                }
+                trade_history.append(new_trade)
+
+        else:
+            print("You dont own any shares of this stock.\n")
+        
+            
+    elif choose_option==3:
         print ("📊 Portfolio Summary")
         print("---------------------")
         
@@ -84,13 +112,17 @@ while journal_running==True:
         
         
     
-    elif choose_option==3:
+    elif choose_option==4:
         print("📝 Trade History")
         print("-----------------")
         for x in trade_history:
-            print(f"You bought {x['Shares']} of {x['Stock']} for ${x['Price']:.2f}" )
+            if x["Type"]=="Buy":
+                 print(f"🟢You bought {x['Shares']} of {x['Stock']} for ${x['Price']:.2f}" )
+            else:
+                 print(f"🔴 Sold {x['Shares']} of {x['Stock']} for ${x['Price']:.2f}")
 
-    elif choose_option==4:
+
+    elif choose_option==5:
         print("👋 Exiting Trading Journal. Goodbye!")
         journal_running=False
 
