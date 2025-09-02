@@ -87,6 +87,7 @@ def process_buy(portfolio, trade_history):
     price_of_trade = round(buy_price_per_share * number_of_shares, 2)
     new_trade = {"Type":"Buy","Stock":stock_sticker,"Shares":number_of_shares,"Price":price_of_trade}
     trade_history.append(new_trade)
+    log_trade("Trade History",new_trade)
 
     if stock_sticker in portfolio:
         total_shares = portfolio[stock_sticker]["Total Shares"] + number_of_shares
@@ -126,7 +127,9 @@ def process_sell(portfolio, trade_history):
     else:
         del portfolio[stock_sticker]
 
-    trade_history.append({"Type":"Sell","Stock":stock_sticker,"Shares":number_of_shares,"Price":price_of_trade})
+    new_trade=({"Type":"Sell","Stock":stock_sticker,"Shares":number_of_shares,"Price":price_of_trade})
+    trade_history.append(new_trade)
+    log_trade("Trade History",new_trade)
 
 def display_portfolio(portfolio):
     print("📊 Portfolio Summary")
@@ -143,8 +146,22 @@ def display_trade_history(trade_history):
         else:
             print(f"🔴 Sold {trade['Shares']} of {trade['Stock']} for ${trade['Price']:.2f}")
 
+def create_trade_log_file(filename):
+
+     if not os.path.exists(filename):
+        with open(filename, "w") as f:
+            pass
+
+def log_trade(filename,trade):
+    try:
+        with open(filename, "a") as f:
+            f.write(f"{trade['Type']},{trade['Stock']},{trade['Shares']},{trade['Price']:.2f}\n")
+    except IOError as e:
+        print(f"Error writing to trade log: {e}")
+
 journal_running = True
 portfolio = load_portfolio("Trading Portfolio")
+create_trade_log_file("Trade History")
 trade_history = []
 
 
@@ -157,6 +174,7 @@ while journal_running:
   
     if choose_option == 1:
         process_buy(portfolio, trade_history)
+        
    
     elif choose_option == 2:
         process_sell(portfolio,trade_history)
