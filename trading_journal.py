@@ -1,5 +1,5 @@
 import os
-import requests
+import yfinance as yf
 
 def get_stored_shares(line):
     y = (line.split(",")[0]).strip()
@@ -165,31 +165,28 @@ def log_trade(filename,trade):
         print(f"Error writing to trade log: {e}")
 
 def get_buy_price(name):
-    url=f"{Api_Url}symbol={name}&apikey=A4AHYDKW4OWWLQAM"
-    response=requests.get(url)
-    data=response.json()
-    if "Time Series (Daily)" not in data:
-        print("⚠️ API error: ", data.get("Note", "No data returned."))
+    try:
+        ticker = yf.Ticker(name)
+        data = ticker.history(period="1d")
+        if data.empty:
+            print(f"⚠ No data found for {name}.")
+            return None
+        return float(data["Open"].iloc[-1])   # Buy at market open
+    except Exception as e:
+        print(f"⚠ Error fetching buy price for {name}: {e}")
         return None
-
-    latest_date = list(data["Time Series (Daily)"].keys())[0]
-    daily_data = data["Time Series (Daily)"][latest_date]
-    buy_price = float(daily_data["1. open"])
-    return buy_price
 
 def get_sell_price(name):
-    url=(f"{Api_Url}symbol={name}&apikey=A4AHYDKW4OWWLQAM")
-    response=requests.get(url)
-    data=response.json()
-    
-    if "Time Series (Daily)" not in data:
-        print("⚠️ API error: ", data.get("Note", "No data returned."))
+   try:
+        ticker = yf.Ticker(name)
+        data = ticker.history(period="1d")
+        if data.empty:
+            print(f"⚠ No data found for {name}.")
+            return None
+        return float(data["Close"].iloc[-1])  # Sell at market close
+   except Exception as e:
+        print(f"⚠ Error fetching sell price for {name}: {e}")
         return None
-
-    latest_date = list(data["Time Series (Daily)"].keys())[0]
-    daily_data = data["Time Series (Daily)"][latest_date]
-    sell_price = float(daily_data["4. close"])
-    return sell_price
 
 
 
