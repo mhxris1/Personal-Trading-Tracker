@@ -4,6 +4,9 @@ import yfinance as yf
 from yahooquery import search
 import threading
 import datetime
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import time
 
 
 def get_stored_shares(line):
@@ -52,11 +55,11 @@ def load_portfolio(filename):
 def get_menu_choice():
     while True:
         try:
-            choice = int(input("Choose an option (1-5): "))
-            if choice in range(1, 6):
+            choice = int(input("Choose an option (1-6): "))
+            if choice in range(1, 7):
                 return choice
             else:
-                print("Enter a number between 1 and 5")
+                print("Enter a number between 1 and 6")
         except ValueError:
             print("Invalid input. Enter a number.")
 
@@ -241,26 +244,46 @@ def save_portfolio(filename, portfolio):
     except IOError as e:
         print(f"Error writing to file: {e}")
 
-def update_portfolio(portfolio, filename="Trading Portfolio"):
+def update_portfolio(portfolio, filename="Trading Portfolio",interval=120):
     global stop_updates,update_thread
     if stop_updates:
-        return 
-    global portfolio_history
+        return
     total_value = get_portfolio_value(portfolio)
     timestamp = datetime.datetime.now()
     portfolio_history.append((timestamp, total_value))
     print(f"\n[{timestamp:%Y-%m-%d %H:%M:%S}] Total Portfolio Value: ${total_value}")
     save_portfolio(filename, portfolio)
-    if update_thread is not None:
-        update_thread.cancel()
-
-    update_thread = threading.Timer(900, update_portfolio, [portfolio, filename])
+    update_thread = threading.Timer(interval, update_portfolio, [portfolio, filename,interval])
     update_thread.start()
+
+def plot_portfolio(portfolio_history):
+    global ani, fig, ax  
+    if not portfolio_history:
+        print("No portfolio history to plot.")
+        return
+    if fig is None or ax is None:
+        fig, ax = plt.subplots(figsize=(10, 5))
+
+    def update(frame):
+        ax.clear()
+        if portfolio_history:  # Re-check in case it grows
+            timestamps, values = zip(*portfolio_history)
+            ax.plot(timestamps, values, marker='x', linestyle='-', color='red')
+            ax.set_title("Portfolio Value Over Time")
+            ax.set_xlabel("Time")
+            ax.set_ylabel("Total Portfolio Value ($)")
+            plt.xticks(rotation=45)
+            ax.grid(True)
+            plt.tight_layout()
+    ani = FuncAnimation(fig, update, interval=12000,cache_frame_data=False)
+    plt.show(block=False)
 
 
 stop_updates=False
 update_thread=None
 journal_running = True
+ani=None
+fig, ax=None, None
 portfolio = load_portfolio("Trading Portfolio")
 create_trade_log_file("Trade History")
 portfolio_history = []
@@ -271,7 +294,7 @@ Api_Url=("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&")
 
 print("\nWelcome to My Trading Journal")
 print("-----------------------------")
-print("1. Add a Trade\n2.Sell Stock\n3.View Portfolio\n4.View Trade History\n5.Exit\n")
+print("1. Add a Trade\n2.Sell Stock\n3.View Portfolio\n4.View Trade History\n5.View Graph\n6.Exit\n")
 
 while journal_running:
     choose_option=get_menu_choice()
@@ -289,12 +312,16 @@ while journal_running:
     elif choose_option == 4:
        display_trade_history(trade_history)
     
-    elif choose_option == 5:
+    elif choose_option==5:
+        plot_portfolio(portfolio_history)
+        continue
+    
+    elif choose_option == 6:
         print("👋 Exiting Trading Journal. Goodbye!")
         journal_running = False
         stop_updates = True
         if update_thread is not None:
-            update_thread.cancel()  # stop the active timer
+            update_thread.cancel()  
         break
         
 
