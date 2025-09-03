@@ -1,4 +1,5 @@
 import os
+from tkinter.messagebox import NO
 import yfinance as yf
 from yahooquery import search
 import threading
@@ -241,16 +242,24 @@ def save_portfolio(filename, portfolio):
         print(f"Error writing to file: {e}")
 
 def update_portfolio(portfolio, filename="Trading Portfolio"):
-     global portfolio_history
-     total_value = get_portfolio_value(portfolio)
-     timestamp = datetime.datetime.now()
-     portfolio_history.append((timestamp, total_value))
-     print(f"[{timestamp:%Y-%m-%d %H:%M:%S}] Total Portfolio Value: ${total_value}")
-     save_portfolio(filename, portfolio)
-     threading.Timer(900, update_portfolio,[portfolio, filename]).start()
+    global stop_updates,update_thread
+    if stop_updates:
+        return 
+    global portfolio_history
+    total_value = get_portfolio_value(portfolio)
+    timestamp = datetime.datetime.now()
+    portfolio_history.append((timestamp, total_value))
+    print(f"\n[{timestamp:%Y-%m-%d %H:%M:%S}] Total Portfolio Value: ${total_value}")
+    save_portfolio(filename, portfolio)
+    if update_thread is not None:
+        update_thread.cancel()
+
+    update_thread = threading.Timer(900, update_portfolio, [portfolio, filename])
+    update_thread.start()
 
 
-
+stop_updates=False
+update_thread=None
 journal_running = True
 portfolio = load_portfolio("Trading Portfolio")
 create_trade_log_file("Trade History")
@@ -283,6 +292,11 @@ while journal_running:
     elif choose_option == 5:
         print("👋 Exiting Trading Journal. Goodbye!")
         journal_running = False
+        stop_updates = True
+        if update_thread is not None:
+            update_thread.cancel()  # stop the active timer
+        break
+        
 
     else:
         print("Incorrect Input. Please enter the Number corresponding to your needs.")
