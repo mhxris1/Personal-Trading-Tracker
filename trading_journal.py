@@ -1,5 +1,7 @@
 import os
 import yfinance as yf
+import requests
+from yahooquery import search
 
 def get_stored_shares(line):
     y = (line.split(",")[0]).strip()
@@ -65,10 +67,12 @@ def get_menu_choice():
 
 def get_stock_input(prompt):
     while True:
-        stock = input(prompt).upper().strip()
-        if stock.isalpha() and len(stock) > 0:
+        company = input(prompt).strip()
+        stock=get_stock_sticker(company)
+        if stock is not None:
             return stock
-        print("Invalid Stock Sticker. Please use only letters")
+        print("⚠ Could not find a valid ticker. Please try again.")
+           
 
 def get_positive_float(prompt):
     while True:
@@ -81,7 +85,7 @@ def get_positive_float(prompt):
             print(f"Invalid input: {e}")
 
 def process_buy(portfolio, trade_history):
-    stock_sticker = get_stock_input("Enter Stock Sticker: ")
+    stock_sticker = get_stock_input("Enter a Company Name: ")
     number_of_shares = get_positive_float("Enter number of Shares: ")
     buy_price_per_share = get_buy_price(stock_sticker)
     if buy_price_per_share is None:
@@ -106,7 +110,7 @@ def process_buy(portfolio, trade_history):
         }
 
 def process_sell(portfolio, trade_history):
-    stock_sticker = get_stock_input("Enter Stock Sticker: ")
+    stock_sticker = get_stock_input("Enter a Company Name: ")
     number_of_shares = get_positive_float("Enter number of Shares: ")
     sell_price_per_share = get_sell_price(stock_sticker)
     if sell_price_per_share is None:
@@ -186,6 +190,26 @@ def get_sell_price(name):
         return float(data["Close"].iloc[-1])  # Sell at market close
    except Exception as e:
         print(f"⚠ Error fetching sell price for {name}: {e}")
+        return None
+
+def get_stock_sticker(company_name):
+
+    try:
+        results = search(company_name)
+        quotes = results.get("quotes", [])
+        if not quotes:
+            print(f"⚠ No ticker found for {company_name}.")
+            return None
+
+        
+        ticker = quotes[0].get("symbol")
+        if ticker:
+            return ticker.upper()
+        else:
+            print(f"⚠ Could not extract ticker for {company_name}.")
+            return None
+    except Exception as e:
+        print(f"⚠ Error searching for {company_name}: {e}")
         return None
 
 
