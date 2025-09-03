@@ -1,7 +1,9 @@
 import os
 import yfinance as yf
-import requests
 from yahooquery import search
+import threading
+import datetime
+
 
 def get_stored_shares(line):
     y = (line.split(",")[0]).strip()
@@ -46,14 +48,6 @@ def load_portfolio(filename):
         }
     return portfolio
 
-def save_portfolio(filename, portfolio):
-    try:
-        with open(filename, "w") as f:
-            for stock, val in portfolio.items():
-                f.write(f"{stock}:Total Shares:{val['Total Shares']}, Total investment: ${val['Total investment']:.2f}, Average Price: ${val['Average Price']:.2f}\n")
-    except IOError as e:
-        print(f"Error writing to file: {e}")
-
 def get_menu_choice():
     while True:
         try:
@@ -71,8 +65,7 @@ def get_stock_input(prompt):
         stock=get_stock_sticker(company)
         if stock is not None:
             return stock
-        print("⚠ Could not find a valid ticker. Please try again.")
-           
+        print("⚠ Could not find a valid ticker. Please try again.") 
 
 def get_positive_float(prompt):
     while True:
@@ -108,6 +101,7 @@ def process_buy(portfolio, trade_history):
             "Total investment": number_of_shares * buy_price_per_share,
             "Average Price": buy_price_per_share
         }
+    update_portfolio(portfolio, "Trading Portfolio")
 
 def process_sell(portfolio, trade_history):
     stock_sticker = get_stock_input("Enter a Company Name: ")
@@ -139,6 +133,7 @@ def process_sell(portfolio, trade_history):
     new_trade=({"Type":"Sell","Stock":stock_sticker,"Shares":number_of_shares,"Price":price_of_trade})
     trade_history.append(new_trade)
     log_trade("Trade History",new_trade)
+    update_portfolio(portfolio, "Trading Portfolio")
 
 def display_portfolio(portfolio):
     print("📊 Portfolio Summary")
@@ -175,7 +170,7 @@ def get_buy_price(name):
         if data.empty:
             print(f"⚠ No data found for {name}.")
             return None
-        return float(data["Open"].iloc[-1])   # Buy at market open
+        return float(data["Open"].iloc[-1])   
     except Exception as e:
         print(f"⚠ Error fetching buy price for {name}: {e}")
         return None
@@ -187,7 +182,7 @@ def get_sell_price(name):
         if data.empty:
             print(f"⚠ No data found for {name}.")
             return None
-        return float(data["Close"].iloc[-1])  # Sell at market close
+        return float(data["Close"].iloc[-1])  
    except Exception as e:
         print(f"⚠ Error fetching sell price for {name}: {e}")
         return None
@@ -212,14 +207,56 @@ def get_stock_sticker(company_name):
         print(f"⚠ Error searching for {company_name}: {e}")
         return None
 
+def get_portfolio_value(portfolio):
+        total_value = 0
+        for ticker, details in portfolio.items():
+            try:
+                stock = yf.Ticker(ticker)
+                data = stock.history(period="1d", interval="1m")
+                if data.empty:
+                    print(f"⚠ No price data for {ticker}. Skipping.")
+                    continue
+                latest_price = data["Close"].iloc[-1]
+                details["Latest Price"] = round(latest_price, 2)
+                details["Current Value"] = round(latest_price * details["Total Shares"], 2)
 
+                total_value += details["Current Value"]
+            except Exception as e:
+                print(f"⚠ Error fetching data for {ticker}: {e}")
+        return round(total_value, 2)
+
+def save_portfolio(filename, portfolio):
+    
+    try:
+        with open(filename, "w") as f:
+            for stock, val in portfolio.items():
+                f.write(
+                    f"{stock}:Total Shares:{val['Total Shares']}, "
+                    f"Total investment: ${val['Total investment']:.2f}, "
+                    f"Average Price: ${val['Average Price']:.2f}, "
+                    f"Latest Price: ${val.get('Latest Price', 0):.2f}, "
+                    f"Current Value: ${val.get('Current Value', 0):.2f}\n"
+                )
+    except IOError as e:
+        print(f"Error writing to file: {e}")
+
+def update_portfolio(portfolio, filename="Trading Portfolio"):
+     global portfolio_history
+     total_value = get_portfolio_value(portfolio)
+     timestamp = datetime.datetime.now()
+     portfolio_history.append((timestamp, total_value))
+     print(f"[{timestamp:%Y-%m-%d %H:%M:%S}] Total Portfolio Value: ${total_value}")
+     save_portfolio(filename, portfolio)
+     threading.Timer(900, update_portfolio,[portfolio, filename]).start()
 
 
 
 journal_running = True
 portfolio = load_portfolio("Trading Portfolio")
 create_trade_log_file("Trade History")
+portfolio_history = []
 trade_history = []
+update_portfolio(portfolio, "Trading Portfolio")
 Api_Url=("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&")
 
 
